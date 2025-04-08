@@ -1,0 +1,237 @@
+import { Button, StandardTableView, LineEdit, VerticalBox, HorizontalBox, TextEdit, CheckBox } from "std-widgets.slint";
+
+export component CreateItem inherits VerticalBox {
+    out property <string> name;
+    out property <int> quantity;
+    out property <string> note;
+
+    LineEdit {
+        placeholder-text: "Enter a name";
+        input-type: text;
+        text: name;
+    }
+
+    LineEdit {
+        placeholder-text: "Enter initial quantity. Default is 0.";
+        input-type: number;
+        text: quantity;
+    }
+
+    TextEdit {
+        placeholder-text: "Enter a note";
+        text: note;
+
+        min-height: 100px;
+        wrap: word-wrap;
+    }
+}
+
+export component ItemTable inherits StandardTableView {
+    in property <[[StandardListViewItem]]> row_data;
+
+    columns: [ 
+        { title: "Name" }, 
+        { title: "Quantity" }, 
+        { title: "Note" }, 
+    ];
+    rows: row_data;
+}
+
+export component OrderTable inherits StandardTableView {
+    in property <[[StandardListViewItem]]> row_data;
+
+    columns: [ { title: "Project" }, { title: "Item" }, { title: "Quantity" }, { title: "Cost" }, { title: "Note" }, { title: "Completed" }, ];
+    rows: row_data;
+}
+
+export component CreateOrder inherits VerticalBox {
+    in-out property <int> projectId : -1 ;
+    in property <string> project;
+    in-out property <int> itemId: -1 ;
+    in property <string> item;
+    out property <int> quantity;
+    out property <int> cost;
+    out property <string> note;
+
+    if projectId == -1 : Button {
+        text: "Pick a project";
+    }
+
+    if projectId != -1: Text {
+        text: project; 
+    }
+
+    if itemId == -1 : Button {
+        text: "Pick an item";
+    }
+
+    if itemId != -1 : Text {
+        text: item;
+    }
+
+    LineEdit {
+        placeholder-text: "Enter required quantity.";
+        input-type: number;
+        text: quantity;
+    }
+
+    LineEdit {
+        placeholder-text: "Enter cost";
+        input-type: number;
+        text: cost;
+    }
+
+    TextEdit {
+        placeholder-text: "Enter a note";
+        text: note;
+
+        min-height: 100px;
+        wrap: word-wrap;
+    }
+}
+
+export component MaterialTable inherits StandardTableView {
+    in property <[[StandardListViewItem]]> row_data;
+
+    columns: [ { title: "Project" }, { title: "Item" }, { title: "Description" }, { title: "Fulfilled" }, ];
+    rows: row_data;
+}
+
+export component ProjectTable inherits StandardTableView {
+    in property <[[StandardListViewItem]]> row_data;
+
+    columns: [ { title: "Name" }, { title: "Description" }, { title: "Completed" }, ];
+    rows: row_data;
+}
+
+export component CreateProject inherits VerticalBox {
+    out property <string> name;
+    out property <int> quantity;
+    out property <string> description;
+
+    LineEdit {
+        placeholder-text: "Enter a name";
+        input-type: text;
+        text: name;
+    }
+
+    TextEdit {
+        placeholder-text: "Enter a description";
+        text: description;
+
+        min-height: 100px;
+        wrap: word-wrap;
+    }
+}
+
+export component View inherits VerticalBox {
+    in property <string> title;
+    in property <string> state;
+    in property <[[StandardListViewItem]]> row_data;
+
+    padding: 0;
+    
+    Text {
+        text: title;
+        font-size: 32pt;
+        horizontal-alignment: center;
+    }
+
+    if state == "Items(Default)" || state == "Orders(Default)" || state == "Materials(Default)" || state == "Projects(Default)" : LineEdit {
+        placeholder-text: "Enter search string here";
+    }
+
+    if state == "Items(Default)" : ItemTable { row_data: row_data; }
+    if state == "Orders(Default)" : OrderTable { row_data: row_data; }
+    if state == "Materials(Default)" : MaterialTable { row_data: row_data; }
+    if state == "Projects(Default)" : ProjectTable { row_data: row_data; }
+
+    if state == "Items(New)" : CreateItem {  }
+    if state == "Orders(New)" : CreateOrder {  }
+    if state == "Projects(New)" : CreateProject {  }
+}
+
+export component AppWindow inherits Window {
+    in-out property <string> state: "Items(Default)";
+    in property <[[StandardListViewItem]]> row_data;
+
+    callback on_action(action: string);
+    callback items();
+    callback orders();
+    callback materials();
+    callback projects();
+    callback new();
+    callback search();
+    callback save();
+    callback back();
+
+    title: "KIT";
+    icon: @image-url("spider-svgrepo-com.png");
+    VerticalBox {
+        padding: 0;
+        Rectangle { 
+            background: #ED900C; 
+            min-width: 100px; 
+            min-height: 10px; 
+            max-height: 20px; 
+        }
+        HorizontalBox {
+            padding: 0;
+
+            VerticalBox {
+                max-width: 150px;
+                Button {
+                    text: "Items";
+                    clicked => { root.items(); }
+                }
+                Button {
+                    text: "Orders";
+                    clicked => { root.orders(); }
+                }
+                Button {
+                    text: "Materials";
+                    clicked => { root.materials(); }
+                }
+                Button {
+                    text: "Projects";
+                    clicked => { root.projects(); }
+                }
+            }
+
+            View {
+                title: state;
+                state: state;
+                row_data: row_data;
+            }
+            
+            VerticalBox {
+                max-width: 150px;
+                Button {
+                    text: "New";
+                    //enabled: false;
+                    clicked => { root.new(); }
+                }
+                Button {
+                    text: "Search";
+                    clicked => { root.search(); }
+                }
+                Button {
+                    text: "Save";
+                    enabled: false;
+                    clicked => { root.save(); }
+                }
+                Button {
+                    text: "Back";
+                    clicked => { root.back(); }
+                }
+            }
+        }
+        
+        Rectangle { 
+            background: #ED900C; 
+            min-width: 100px; 
+            min-height: 10px; 
+            max-height: 20px; 
+        }
+    }
+}
