@@ -222,17 +222,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
 
+    // Incorporate this into *(Searched) states
     // experimental from here
     let row_data: Rc<VecModel<slint::ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
 
-    for r in 1..101 {
-        let items = Rc::new(VecModel::default());
+    let app_clone = Arc::clone(&app);
+    let data = &app_clone.read().unwrap().data;
 
-        for c in 1..5 {
-            items.push(slint::format!("Item {r}.{c}").into());
+    for row in data {
+        let cells = Rc::new(VecModel::default());
+
+        for cell in row {
+            cells.push(slint::format!("{}", cell).into());
         }
 
-        row_data.push(items.into());
+        row_data.push(cells.into());
     }
 
     ui.write().unwrap().set_row_data(row_data.clone().into());
