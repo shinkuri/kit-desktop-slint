@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 use reqwest::Client;
 use serde::Deserialize;
@@ -14,7 +14,7 @@ struct ItemsORM {
     description: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum States {
     Default,
     New,
@@ -80,6 +80,7 @@ async fn api_items_search(sequence: String) -> Result<Vec<ItemsORM>, Box<dyn Err
     let response = client
         .get("http://localhost:8080/items/search")
         .query(&[("sequence", sequence)])
+        .timeout(Duration::from_secs(1))
         .send()
         .await?
         .json::<Vec<ItemsORM>>()

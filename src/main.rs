@@ -1,13 +1,13 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, rc::Rc, sync::{Arc, RwLock}};
+use std::{error::Error, fmt, rc::Rc, sync::{Arc, RwLock}};
 
 use items::Items;
 use materials::Materials;
 use orders::Orders;
 use project::Projects;
-use slint::{ModelRc, StandardListViewItem, VecModel};
+use slint::{StandardListViewItem, VecModel};
 
 mod items;
 mod materials;
@@ -28,7 +28,7 @@ enum Actions {
     Back,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum AppState {
     Items(items::States),
     Orders(orders::States),
@@ -36,13 +36,24 @@ enum AppState {
     Projects(project::States),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct App {
     state: AppState,
     back_stack: Vec<AppState>,
     search: String,
     data: Vec<Vec<String>>,
     clipboard_id: Option<i64>,
+
+    ui: Option<Rc<RwLock<AppWindow>>>,
+}
+
+impl fmt::Debug for App {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("App")
+            .field("state", &self.state)
+            .field("search", &self.search)
+            .finish_non_exhaustive()
+    }
 }
 
 impl App {
@@ -53,6 +64,8 @@ impl App {
             data: Vec::<Vec<String>>::new(),
             back_stack: Vec::new(),
             clipboard_id: None,
+
+            ui: None,
         }
     }
 
@@ -98,10 +111,30 @@ impl App {
             },
             Actions::Search => {
                 match self.state {
-                    AppState::Items(_) => Items::search(self),
-                    AppState::Orders(_) => Orders::search(self),
-                    AppState::Materials(_) => Materials::search(self),
-                    AppState::Projects(_) => Projects::search(self),
+                    AppState::Items(_) =>  {
+                        Items::search(self);
+                        if self.state != AppState::Items(items::States::Error) && self.ui.is_some() {
+                            self.push_data();
+                        }
+                    },
+                    AppState::Orders(_) => {
+                        Orders::search(self);
+                        if self.state != AppState::Orders(orders::States::Error) && self.ui.is_some() {
+                            self.push_data();
+                        }
+                    },
+                    AppState::Materials(_) => {
+                        Materials::search(self);
+                        if self.state != AppState::Materials(materials::States::Error) && self.ui.is_some() {
+                            self.push_data();
+                        }
+                    },
+                    AppState::Projects(_) => {
+                        Projects::search(self);
+                        if self.state != AppState::Projects(project::States::Error) && self.ui.is_some() {
+                            self.push_data();
+                        }
+                    },
                 };
             }
             Actions::Save => todo!(),
@@ -119,6 +152,23 @@ impl App {
         }
     }
 
+    fn push_data(&self) {
+        let row_data: Rc<VecModel<slint::ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
+    
+        for row in self.data.clone() {
+            let cells = Rc::new(VecModel::default());
+
+            for cell in row {
+                cells.push(slint::format!("{}", cell).into());
+            }
+
+            row_data.push(cells.into());
+        }
+
+        let ui_clone = Option::unwrap(self.ui.clone());
+        ui_clone.write().unwrap().set_row_data(row_data.clone().into());
+    }
+
     fn set_state(&mut self, state: AppState) {
         self.state = state;
     }
@@ -132,6 +182,8 @@ pub(crate) trait Entity<const N: usize> {
 fn main() -> Result<(), Box<dyn Error>> {
     let app = Arc::new(RwLock::new(App::new()));
     let ui = Rc::new(RwLock::new(AppWindow::new()?));
+
+    app.write().unwrap().ui = Some(Rc::clone(&ui));
 
     let app_clone = Arc::clone(&app);
     let ui_clone = Rc::clone(&ui);
@@ -220,28 +272,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         ui.set_state(format!("{:?}", app.state).into());
         println!("to {:?}", app.state);
     });
-
-
-    // Incorporate this into *(Searched) states
-    // experimental from here
-    let row_data: Rc<VecModel<slint::ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
-
-    let app_clone = Arc::clone(&app);
-    let data = &app_clone.read().unwrap().data;
-
-    for row in data {
-        let cells = Rc::new(VecModel::default());
-
-        for cell in row {
-            cells.push(slint::format!("{}", cell).into());
-        }
-
-        row_data.push(cells.into());
-    }
-
-    ui.write().unwrap().set_row_data(row_data.clone().into());
-    // to here
-
 
     let _ = ui.read().unwrap().run();
 

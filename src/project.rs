@@ -12,7 +12,7 @@ struct ProjectsORM {
     is_complete: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum States {
     Default,
     New,

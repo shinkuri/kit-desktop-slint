@@ -14,7 +14,7 @@ pub struct MaterialsORM {
     is_fulfilled: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum States {
     Default,
     New,
